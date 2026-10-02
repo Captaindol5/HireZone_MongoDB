@@ -1,11 +1,11 @@
 # HireZone — AI-Powered Applicant Tracking System (ATS)
 
-[![Tests](https://img.shields.io/badge/Playwright-19%20Passed%20(100%25)-brightgreen.svg)](tests/)
-[![Vite](https://img.shields.io/badge/Vite-React%2018-blue.svg)](https://vitejs.dev/)
-[![Firebase](https://img.shields.io/badge/Backend-Firebase%20Firestore-orange.svg)](https://firebase.google.com/)
+[![Vite](https://img.shields.io/badge/Frontend-Vite%20%2B%20React-blue.svg)](https://vitejs.dev/)
+[![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-green.svg)](https://expressjs.com/)
+[![Database](https://img.shields.io/badge/Database-MongoDB-brightgreen.svg)](https://www.mongodb.com/)
 [![AI Engine](https://img.shields.io/badge/AI-Google%20Gemini-purple.svg)](https://ai.google.dev/)
 
-HireZone is a modern, enterprise-ready Applicant Tracking System (ATS) designed to streamline end-to-end recruitment workflows. It features live candidate screening powered by Google Gemini AI, dynamic Kanban hiring pipelines with mandatory feedback stage-gates, role-based evaluation portals, and real-time notification dispatch.
+HireZone is a modern, enterprise-ready Applicant Tracking System (ATS) designed to streamline end-to-end recruitment workflows. It features live candidate screening powered by Google Gemini AI, dynamic Kanban hiring pipelines with mandatory feedback stage-gates, role-based evaluation portals, and a real-time notification system.
 
 ---
 
@@ -15,9 +15,8 @@ HireZone is a modern, enterprise-ready Applicant Tracking System (ATS) designed 
 3. [System Architecture](#system-architecture)
 4. [Getting Started](#getting-started)
 5. [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
-6. [Quality Assurance & Automated Testing](#quality-assurance--automated-testing)
-7. [Directory Structure](#directory-structure)
-8. [Scripts Reference](#scripts-reference)
+6. [Directory Structure](#directory-structure)
+7. [Scripts Reference](#scripts-reference)
 
 ---
 
@@ -25,10 +24,10 @@ HireZone is a modern, enterprise-ready Applicant Tracking System (ATS) designed 
 
 - **Public Careers Portal & Application Flow**: Candidate self-service job board with live application forms, resume PDF uploading, and automatic text extraction.
 - **Automated AI Resume Screening**: Integration with Google Gemini AI to analyze candidate resumes against job descriptions, calculate fit scores, and provide unbiased evaluation summaries.
-- **Kanban Pipeline & Stage-Gates**: Visual recruitment board for HR managers with strict business logic—preventing candidates from advancing to subsequent stages without submitted interviewer feedback.
+- **Kanban Pipeline & Stage-Gates**: Visual recruitment board for HR managers with strict business logic — preventing candidates from advancing without submitted interviewer feedback.
 - **Interviewer Evaluation Portal**: Structured candidate queues and scorecards allowing interviewers to score candidates (1–10) and record qualitative assessments.
 - **Executive Analytics Dashboard**: High-level comparison matrices, hiring funnel conversion metrics, and candidate distribution breakdowns.
-- **Real-Time Notification System**: Instant notification dispatch upon feedback submission or candidate application, complete with unread badge counters and one-click read clearing.
+- **Real-Time Notification System**: Instant notification dispatch upon feedback submission or candidate application, with unread badge counters and one-click read clearing.
 
 ---
 
@@ -36,14 +35,38 @@ HireZone is a modern, enterprise-ready Applicant Tracking System (ATS) designed 
 
 | Layer | Technology |
 | :--- | :--- |
-| **Frontend Framework** | React 18, React Router v6 |
-| **Build Tool & Bundler** | Vite |
+| **Frontend Framework** | React 19, React Router v7 |
+| **Build Tool** | Vite |
 | **Styling** | Tailwind CSS, Lucide React Icons |
-| **Backend & Database** | Firebase Authentication, Cloud Firestore |
+| **Authentication** | Firebase Authentication |
+| **Backend API** | Node.js, Express 5 |
+| **Database** | MongoDB (local), Mongoose ODM |
 | **AI Evaluation Engine** | Google Gemini Generative AI SDK (`@google/generative-ai`) |
 | **Document Processing** | `pdfjs-dist` (client-side PDF text extraction) |
-| **Communications** | EmailJS (`@emailjs/browser`) |
-| **Automated Testing** | Playwright E2E (`@playwright/test`) |
+| **Email Notifications** | EmailJS (`@emailjs/browser`) |
+
+---
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   React Frontend (Vite)              │
+│   Firebase Auth  ──►  JWT Token  ──►  Express API   │
+└────────────────────────┬────────────────────────────┘
+                         │ REST API (port 5000)
+┌────────────────────────▼────────────────────────────┐
+│              Node.js + Express Backend               │
+│   Routes: /api/auth  /api/jobs  /api/candidates     │
+│           /api/notifications  /api/interviewers     │
+└────────────────────────┬────────────────────────────┘
+                         │ Mongoose ODM
+┌────────────────────────▼────────────────────────────┐
+│                  MongoDB Database                    │
+│  Collections: users, jobs, candidates,              │
+│               interviewers, notifications           │
+└─────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -52,152 +75,138 @@ HireZone is a modern, enterprise-ready Applicant Tracking System (ATS) designed 
 ### Prerequisites
 - **Node.js**: `>= 18.0.0`
 - **npm**: `>= 9.0.0`
+- **MongoDB**: Running locally on `mongodb://localhost:27017`
 
-### Installation
+### 1. Clone and Install Frontend Dependencies
 
-1. **Clone the repository and install dependencies:**
-   ```bash
-   git clone <repo-url>
-   cd hirezone
-   npm install
-   ```
+```bash
+git clone https://github.com/Captaindol5/HireZone_MongoDB.git
+cd HireZone_MongoDB
+npm install
+```
 
-2. **Configure Environment Variables:**
-   Create a `.env.local` file in the root directory and configure your Firebase and Gemini API keys:
-   ```env
-   VITE_FIREBASE_API_KEY=your_firebase_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_FIREBASE_APP_ID=your_app_id
-   VITE_GEMINI_API_KEY=your_gemini_api_key
-   ```
+### 2. Configure Frontend Environment Variables
 
-3. **Start the Development Server:**
-   ```bash
-   npm run dev
-   ```
-   The application will be accessible at: `http://localhost:5173`
+Create a `.env` file in the root directory:
+
+```env
+# Google Gemini AI (for AI resume screening)
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+
+# EmailJS (for automated email notifications)
+VITE_EMAILJS_SERVICE_ID=your_emailjs_service_id
+VITE_EMAILJS_PUBLIC_KEY=your_emailjs_public_key
+VITE_EMAILJS_TEMPLATE_ID=your_emailjs_template_id
+```
+
+### 3. Install and Configure Backend
+
+```bash
+cd backend
+npm install
+```
+
+Create a `.env` file inside the `backend/` directory:
+
+```env
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/hirezone
+JWT_SECRET=your_jwt_secret_key
+```
+
+### 4. Seed the Database (First Time Setup)
+
+Run the user creation script to populate initial HR, Interviewer, and Manager accounts:
+
+```bash
+cd backend
+node createUsers.js
+```
+
+### 5. Start the Backend Server
+
+```bash
+cd backend
+node server.js
+```
+
+The API will be accessible at: `http://localhost:5000`
+
+### 6. Start the Frontend Development Server
+
+In a new terminal from the project root:
+
+```bash
+npm run dev
+```
+
+The application will be accessible at: `http://localhost:5173`
 
 ---
 
 ## Role-Based Access Control (RBAC)
 
-HireZone enforces route-level authentication guards via `ProtectedRoute.jsx`. Standard test accounts:
+HireZone enforces route-level authentication guards via Firebase Auth tokens validated against the MongoDB User collection.
 
-| Role | Test Email | Default Landing Route | Responsibilities |
-| :--- | :--- | :--- | :--- |
-| **HR / Hiring Manager** | `naveen@hirezone.com` | `/portal/hr` | Manage Kanban stages, advance candidates, oversee jobs |
-| **Interviewer** | `abhi@hirezone.com` | `/portal/interviewer` | Review assigned candidates, view AI summary, submit scorecards |
-| **Executive Manager** | `sarah@hirezone.com` | `/portal/analytics` | View hiring funnel, conversion rates, and executive reports |
-| **Candidate (Public)** | *Public / Unauthenticated* | `/careers` | Discover listings, submit resume PDF, view confirmation |
-
----
-
-## Quality Assurance & Automated Testing
-
-### 1. Overview
-The HireZone repository includes an automated End-to-End (E2E) testing suite powered by **Playwright**. The test suite covers 19 critical user journeys across all system roles, business rules, and error conditions with a **100% pass rate**.
-
-### 2. Test Execution Commands
-
-| Command | Action |
-| :--- | :--- |
-| `npm test` | Run all 19 automated tests headlessly |
-| `npm run test:ui` | Open the interactive Playwright UI Runner with time-travel debugging |
-| `npm run test:report` | Serve the generated HTML test report in your browser |
-| `npm run db:clean` | **Database Reset**: Purges duplicate test candidates and restores canonical data |
-
-### 3. Running Specific Test Suites
-You can run individual test suites directly:
-```bash
-# Authentication & Role-Based Routing
-npx playwright test tests/auth.spec.js
-
-# Public Careers & Application Submission (with AI Screening)
-npx playwright test tests/careers.spec.js
-
-# Kanban Pipeline & Mandatory Stage-Gates
-npx playwright test tests/kanban_pipelines.spec.js
-
-# Interviewer Assessment & Scorecards
-npx playwright test tests/feedback.spec.js
-
-# AI Screening Reports & Executive Analytics
-npx playwright test tests/screening_analytics.spec.js
-
-# Real-Time Notification Bell & Counter
-npx playwright test tests/notifications.spec.js
-```
-
-### 4. Test Suite Mapping (Sprint 1)
-
-| Test ID | Spec File | Module / Scenario | Pass/Fail |
-| :--- | :--- | :--- | :--- |
-| **TC01** | `auth.spec.js` | HR User Login & Routing | **PASS** |
-| **TC02** | `auth.spec.js` | Interviewer Login & Routing | **PASS** |
-| **TC03** | `auth.spec.js` | Executive Manager Login & Routing | **PASS** |
-| **TC03a** | `auth.spec.js` | Invalid Credentials Modal Handling | **PASS** |
-| **TC03b** | `auth.spec.js` | Unauthenticated Access Redirection | **PASS** |
-| **TC03c** | `auth.spec.js` | Unauthorized Role Access Protection | **PASS** |
-| **TC04** | `careers.spec.js` | Browse Active Job Openings | **PASS** |
-| **TC05** | `careers.spec.js` | Candidate Job Application with Resume PDF | **PASS** |
-| **TC05a** | `careers.spec.js` | HTML5 Application Form Validation | **PASS** |
-| **TC06** | `kanban_pipelines.spec.js` | Kanban Pipeline Board & Stage Columns | **PASS** |
-| **TC07** | `kanban_pipelines.spec.js` | Candidate Card Population & Details Modal | **PASS** |
-| **TC07a** | `kanban_pipelines.spec.js` | Mandatory Stage-Gate (Missing Feedback Guard) | **PASS** |
-| **TC08** | `feedback.spec.js` | Candidate Queue Access in Interviewer Portal | **PASS** |
-| **TC09** | `feedback.spec.js` | Scorecard Submission (1-10 Score + Feedback) | **PASS** |
-| **TC10** | `screening_analytics.spec.js` | Automated Gemini AI Screening & Fit Score | **PASS** |
-| **TC10a** | `screening_analytics.spec.js` | View AI Screening Summary & Resume in Portal | **PASS** |
-| **TC11** | `screening_analytics.spec.js` | Executive Funnel Analytics & Pipeline Summary | **PASS** |
-| **TC12** | `notifications.spec.js` | Real-time Push Notification & Unread Badge Counter | **PASS** |
-| **TC13** | `notifications.spec.js` | Notification Panel Open & Mark All as Read | **PASS** |
-
-### 5. Non-Functional Testing Requirements
-- **Performance (Lighthouse)**: Audit desktop and mobile routes for Performance, Accessibility, Best Practices, and SEO.
-- **Responsiveness**: Verify layouts across mobile (390px), tablet (820px), and desktop (1440px+).
+| Role | Landing Route | Responsibilities |
+| :--- | :--- | :--- |
+| **HR / Hiring Manager** | `/portal/hr` | Manage Kanban stages, advance candidates, oversee jobs |
+| **Interviewer** | `/portal/interviewer` | Review assigned candidates, view AI summary, submit scorecards |
+| **Executive Manager** | `/portal/analytics` | View hiring funnel, conversion rates, and executive reports |
+| **Candidate (Public)** | `/careers` | Discover listings, submit resume PDF, view confirmation |
 
 ---
 
 ## Directory Structure
 
 ```
-hirezone/
-├── public/                 # Static assets and icons
+HireZone_MongoDB/
+├── backend/                    # Node.js + Express REST API
+│   ├── models/
+│   │   ├── Candidate.js        # Mongoose schema for candidates
+│   │   ├── Interviewer.js      # Mongoose schema for interviewers
+│   │   ├── Job.js              # Mongoose schema for jobs
+│   │   ├── Notification.js     # Mongoose schema for notifications
+│   │   └── User.js             # Mongoose schema for users
+│   ├── createUsers.js          # Script to seed initial user accounts
+│   ├── syncInterviewers.js     # Script to sync interviewers collection
+│   ├── server.js               # Main Express server & API routes
+│   └── package.json
+├── public/                     # Static assets and icons
 ├── scripts/
-│   └── cleanupDb.js        # Firestore test data reset utility
+│   └── cleanupDb.js            # Database cleanup utility
 ├── src/
-│   ├── components/         # Reusable UI components (Navbar, Modals, etc.)
-│   ├── firebase/           # Firebase SDK configuration
+│   ├── components/             # Reusable UI components (Navbar, Modals, etc.)
+│   ├── context/                # React context (AuthContext)
+│   ├── firebase/               # Firebase SDK configuration (Auth only)
 │   ├── pages/
-│   │   ├── portals/        # Role-specific portals (HR, Interviewer, Manager)
-│   │   ├── ApplyPage.jsx   # Candidate application & PDF upload page
-│   │   ├── Careers.jsx     # Public careers listing
-│   │   └── Login.jsx       # Multi-role authentication page
-│   ├── services/           # Firestore data services, queries, and listeners
-│   └── App.jsx             # Route definitions and ProtectedRoute guards
-├── tests/
-│   ├── fixtures/           # Sample test files (sample_resume.pdf)
-│   ├── auth.spec.js
-│   ├── careers.spec.js
-│   ├── feedback.spec.js
-│   ├── kanban_pipelines.spec.js
-│   ├── notifications.spec.js
-│   └── screening_analytics.spec.js
-├── playwright.config.js    # Playwright E2E configuration
-└── package.json
+│   │   ├── portals/            # Role-specific portals (HR, Interviewer, Manager)
+│   │   ├── CareersPage.jsx     # Public careers listing
+│   │   ├── JobApplicationPage.jsx  # Candidate application & PDF upload
+│   │   ├── LandingPage.jsx     # Public landing page
+│   │   └── LoginPage.jsx       # Multi-role authentication page
+│   ├── services/               # API service layer (data fetching)
+│   └── App.jsx                 # Route definitions and ProtectedRoute guards
+├── .env.example                # Environment variable template
+├── index.html
+├── package.json
+└── vite.config.js
 ```
 
 ---
 
 ## Scripts Reference
 
-- `npm run dev`: Launch Vite development server on port 5173.
-- `npm run build`: Compile production bundle to `dist/`.
-- `npm run lint`: Execute ESLint checks across codebase.
-- `npm test`: Run the automated Playwright E2E test suite.
-- `npm run test:ui`: Open Playwright interactive UI test runner.
-- `npm run test:report`: Open HTML test report.
-- `npm run db:clean`: Purge duplicate test data and reset Firestore state.
+### Frontend (run from project root)
+| Command | Action |
+| :--- | :--- |
+| `npm run dev` | Launch Vite development server on port 5173 |
+| `npm run build` | Compile production bundle to `dist/` |
+| `npm run lint` | Execute ESLint checks across codebase |
+
+### Backend (run from `backend/` directory)
+| Command | Action |
+| :--- | :--- |
+| `node server.js` | Start the Express API server on port 5000 |
+| `node createUsers.js` | Seed initial user accounts into MongoDB |
+| `node syncInterviewers.js` | Sync interviewer records between collections |
