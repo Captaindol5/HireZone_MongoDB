@@ -8,10 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "db:clean": "node scripts/cleanupDb.js",
-    "test": "node scripts/cleanupDb.js && playwright test --project=chromium",
-    "test:ui": "playwright test --ui",
-    "test:report": "playwright show-report"
+    "db:clean": "node scripts/cleanupDb.js"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
@@ -27,7 +24,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.63.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.5",

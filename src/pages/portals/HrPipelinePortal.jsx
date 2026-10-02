@@ -45,7 +45,7 @@ import {
   updateJob,
 } from '../../services/hirezoneData';
 
-const EMPTY_STAGE = { name: '', interviewerId: '' };
+const EMPTY_STAGE = { name: '', interviewerId: '', passingThreshold: 7 };
 
 const tabs = [
   { key: 'jobs', label: 'Jobs', icon: BriefcaseBusiness },
@@ -195,6 +195,7 @@ const HrPipelinePortal = () => {
       await createStageForJob(selectedJob.id, {
         name: newStage.name,
         interviewerId: newStage.interviewerId,
+        passingThreshold: Number(newStage.passingThreshold) || 7,
       });
       setNewStage(EMPTY_STAGE);
       setError('');
@@ -216,6 +217,7 @@ const HrPipelinePortal = () => {
       await updateStageForJob(selectedJob.id, editingStageId, {
         name: newStage.name,
         interviewerId: newStage.interviewerId,
+        passingThreshold: Number(newStage.passingThreshold) || 7,
       });
       setNewStage(EMPTY_STAGE);
       setEditingStageId(null);
@@ -328,25 +330,34 @@ const HrPipelinePortal = () => {
 
   const handleSmartFail = (candidate) => {
     const job = data.jobs.find(j => j.id === candidate.jobId) || selectedJob;
-    const threshold = (job?.passingThreshold || 70) / 10;
+    const currentStage = (job?.stages || []).find(s => s.id === candidate.stage);
+    const threshold = Number(currentStage?.passingThreshold ?? 7);
     
     if (candidate.score >= threshold) {
       setConfirmModal({
         open: true,
         title: 'High Score Warning',
-        message: `This candidate scored ${candidate.score}/10, which meets the passing threshold of ${threshold}/10. Are you sure you want to fail them?`,
+        message: `This candidate scored ${candidate.score}/10, which meets the passing threshold of ${threshold}/10. Are you sure you want to fail ${candidate.name}?`,
         confirmText: 'Yes, Fail Candidate',
         confirmStyle: 'bg-red-500 hover:bg-red-600',
         action: () => handleFailCandidate(candidate.id)
       });
     } else {
-      handleFailCandidate(candidate.id);
+      setConfirmModal({
+        open: true,
+        title: 'Fail Candidate',
+        message: `Are you sure you want to fail ${candidate.name}?`,
+        confirmText: 'Yes, Fail Candidate',
+        confirmStyle: 'bg-red-500 hover:bg-red-600',
+        action: () => handleFailCandidate(candidate.id)
+      });
     }
   };
 
   const handleSmartAdvance = (candidate, stageIndex) => {
     const job = data.jobs.find(j => j.id === candidate.jobId) || selectedJob;
-    const threshold = (job?.passingThreshold || 70) / 10;
+    const currentStage = (job?.stages || [])[stageIndex];
+    const threshold = Number(currentStage?.passingThreshold ?? 7);
 
     if (!selectedJob) return;
     const nextStage = selectedJob.stages[stageIndex + 1];
@@ -362,13 +373,20 @@ const HrPipelinePortal = () => {
       setConfirmModal({
         open: true,
         title: 'Low Score Warning',
-        message: `This candidate scored ${candidate.score}/10, which is below the passing threshold of ${threshold}/10. Are you sure you want to advance them?`,
+        message: `This candidate scored ${candidate.score}/10, which is below the passing threshold of ${threshold}/10. Are you sure you want to advance ${candidate.name}?`,
         confirmText: 'Yes, Advance Candidate',
         confirmStyle: 'bg-orange-500 hover:bg-orange-600',
         action: () => advanceCandidate(candidate.id, stageIndex)
       });
     } else {
-      advanceCandidate(candidate.id, stageIndex);
+      setConfirmModal({
+        open: true,
+        title: 'Advance Candidate',
+        message: `Are you sure you want to advance ${candidate.name}?`,
+        confirmText: 'Yes, Advance Candidate',
+        confirmStyle: 'bg-orange-500 hover:bg-orange-600',
+        action: () => advanceCandidate(candidate.id, stageIndex)
+      });
     }
   };
 
@@ -698,7 +716,7 @@ const HrPipelinePortal = () => {
                             }}
                             className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20"
                           >
-                            <Eye size={16} /> View Details
+                            <Eye size={16} /> Stages
                           </button>
                         </div>
                       ))}
@@ -786,8 +804,12 @@ const HrPipelinePortal = () => {
                       <span className="rounded-full bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-600">{selectedJob?.stages.length || 0} stages</span>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+                    <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto]">
                       <input value={newStage.name} onChange={(e) => setNewStage((prev) => ({ ...prev, name: e.target.value }))} placeholder="Stage name" className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-3 text-sm outline-none focus:border-emerald-400" />
+                      <div className="flex flex-col justify-center border border-[var(--border-color)] bg-[var(--bg-secondary)] rounded-2xl px-3 py-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pass Score (0-10)</label>
+                        <input type="number" min="0" max="10" value={newStage.passingThreshold ?? 7} onChange={(e) => setNewStage((prev) => ({ ...prev, passingThreshold: e.target.value }))} placeholder="7" className="w-16 bg-transparent text-sm font-semibold text-[var(--text-headers)] outline-none" />
+                      </div>
                       <div className="flex items-center gap-2">
                         <button onClick={editingStageId ? updateStage : addStage} disabled={readOnly} className="rounded-2xl bg-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition hover:translate-y-[-1px] disabled:opacity-50">
                           {editingStageId ? 'Update stage' : 'Add stage'}
@@ -822,13 +844,13 @@ const HrPipelinePortal = () => {
                           >
                             <div>
                               <p className="text-[20px] font-semibold text-[var(--text-headers)]">{index + 1}. {stage.name}</p>
-                              <p className="mt-1 text-sm text-[var(--text-muted)]">Assigned interviewer: {stage.interviewer || 'Unassigned'}</p>
+                              <p className="mt-1 text-sm text-[var(--text-muted)]">Assigned interviewer: {stage.interviewer || 'Unassigned'} • Passing score: {stage.passingThreshold ?? 7}/10</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => {
                                   setEditingStageId(stage.id);
-                                  setNewStage({ name: stage.name, interviewerId: stage.interviewer || '' });
+                                  setNewStage({ name: stage.name, interviewerId: stage.interviewer || '', passingThreshold: stage.passingThreshold ?? 7 });
                                 }}
                                 disabled={readOnly}
                                 className={`flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border-color)] text-[var(--text-headers)] transition hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 ${editingStageId === stage.id ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'bg-white dark:bg-slate-800'}`}
@@ -1171,9 +1193,20 @@ const HrPipelinePortal = () => {
                 <div className="flex items-center gap-4 mt-1">
                   <p className="text-3xl font-black text-[var(--text-headers)]">{viewingCandidate.hasSubmittedFeedback ? `${viewingCandidate.score} / 10` : 'N/A'}</p>
                   {viewingCandidate.hasSubmittedFeedback && (
-                    <span className="text-sm font-semibold text-slate-400">
-                      (Passing Threshold: {(selectedJob?.passingThreshold || 70) / 10}/10)
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-semibold text-slate-400">
+                        (Passing Threshold: {selectedJob?.stages?.[viewingCandidateStageIndex]?.passingThreshold ?? 7}/10)
+                      </span>
+                      {viewingCandidate.score >= (selectedJob?.stages?.[viewingCandidateStageIndex]?.passingThreshold ?? 7) ? (
+                        <span className="inline-block mt-1 text-[11px] font-bold tracking-wider uppercase text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full w-max shadow-sm">
+                          ✓ Recommendation: Pass
+                        </span>
+                      ) : (
+                        <span className="inline-block mt-1 text-[11px] font-bold tracking-wider uppercase text-red-600 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-full w-max shadow-sm">
+                          ✕ Recommendation: Fail
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
